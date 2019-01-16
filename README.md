@@ -10,5 +10,5 @@ $ npm install
 ## 使用
 
 ```bash
-$ npm run
+$ npm start
 ```
