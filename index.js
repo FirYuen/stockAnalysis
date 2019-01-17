@@ -2,6 +2,7 @@ var request = require('request')
 var fs = require("fs")
 var ProgressBar = require('cli-progress');
 var readLine = require('lei-stream').readLine;
+var nodemailer = require("nodemailer");
 
 var interceptor = {
     analysis: true,
@@ -14,11 +15,11 @@ var interceptor = {
     priceMin: 4.00,
     priceMax: 80.00,
     requireMACD: true,
-    requireKDJ:true,
+    requireKDJ: true,
     requirePrice: true,
     STinclude: false,
     days: -1,
-    stockCount: 'ALL', //'ALL', //'ALL' //'ALL' //接受number 或者 字符串 ALL
+    stockCount: 'ALL',//'ALL' //接受number 或者 字符串 ALL
     interceptor: function (data) {
         let FSD = formatedStockData(data)
         let {
@@ -37,6 +38,8 @@ var interceptor = {
         if (this.matchMACD(macd) & this.matchPrice(open) & this.includeST(name) & this.matchKDJ(kdjk, kdjd, kdjj)) {
             analysisArr.push(FSD)
             //utils.appendfs(utils.getToday().dateStr + '-analysis.json',JSON.stringify(FSD)+'\n')
+
+            html = html + str + ` <a href="${FSD.url}">${name}</a> <br>`
             let mdStr = `- [ ]  ${str} [${name}](${FSD.url}) \n`
             analysisMD = analysisMD + mdStr
 
@@ -85,17 +88,18 @@ var interceptor = {
         }
     },
     matchKDJ: function (kdjk, kdjd, kdjj) {
-        if(this.requireKDJ){
+        if (this.requireKDJ) {
             if (kdjk < this.k & kdjd < this.d & kdjj < this.j) {
                 return true
             } else {
                 return false
             }
-        }else{
+        } else {
             return true
         }
     }
 }
+
 
 var utils = {
     getToday: function () {
@@ -114,20 +118,27 @@ var utils = {
             }, ms);
         });
     },
-    appendfs: function name(fsName, str) {
+    appendfs: function (fsName, str) {
         fs.appendFile(fsName, str, function (err) {
             if (err) {
                 return console.error(err);
             }
         });
     },
-    writefs: function name(fsName, str) {
+    writefs: function (fsName, str) {
         fs.writeFile(fsName, str, function (err) {
             if (err) {
                 return console.error(err);
             }
         });
-    }
+    },
+
+}
+
+var fsName = {
+    dateJSON: utils.getToday().dateStr + '.json',
+    dateAnalysisMD: utils.getToday().dateStr + '.md',
+    dateAnalysisJSON: utils.getToday().dateStr + '-analysis.json'
 }
 
 
@@ -138,6 +149,8 @@ var fetchBar = new ProgressBar.Bar({
 var chosenList = []
 var analysisMD = ''
 var analysisArr = []
+var html = ''
+var mailAttachment = []
 
 var headers = {
     'User-Agent': `Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/59.0.3071.115 Safari/537.36`,
@@ -223,8 +236,8 @@ function getStockData(stock, index, cookie) {
             if (resp.statusCode === 200) {
                 let respData = JSON.parse(body)
                 respData.data.sName = stockName
-                fsName = utils.getToday().dateStr + '.json'
-                utils.appendfs(fsName, JSON.stringify(respData) + '\n')
+                //fsName = utils.getToday().dateStr + '.json'
+                utils.appendfs(fsName.dateJSON, JSON.stringify(respData) + '\n')
                 resolve()
             } else {
                 reject()
@@ -268,7 +281,7 @@ function analysis(fsName) {
     });
 
     line.on('data', (json) => {
-        let data = json.data  
+        let data = json.data
         if (data.symbol) {
             interceptor.interceptor(data)
         }
@@ -282,11 +295,32 @@ function analysis(fsName) {
             analysisJSON[i] = e
         });
         utils.writefs(utils.getToday().dateStr + '-analysis.json', JSON.stringify(analysisJSON))
-
-        console.log('end');
+        console.log(`    Anaysis end`);
     });
 }
 
+
+
+
+async function sendMail() {
+    let mailOptions
+    await fs.readFile("mailAccount.json", (err, data) => {
+        let mailInfo = JSON.parse(data)
+        let transporter = nodemailer.createTransport(
+            mailInfo.accountInfo
+        );
+        mailOptions = {
+            from: mailInfo.mail.from,
+            to: mailInfo.mail.to,
+            subject: `${utils.getToday().dateStr} 分析报告`,
+            html: `
+            ${html}
+              `,
+            attachments: mailAttachment
+        };
+        transporter.sendMail(mailOptions)
+    })
+}
 
 async function fetchAllAndAnalysis(chosenList, cookie) {
     if (interceptor.fetchTodayData) {
@@ -295,15 +329,31 @@ async function fetchAllAndAnalysis(chosenList, cookie) {
             await getStockData(ele, index, cookie)
             fetchBar.update(index + 1);
         });
+        mailAttachment.push({
+            filename: fsName.dateJSON,
+            path: fsName.dateJSON
+        })
     }
     fetchBar.stop()
     await utils.sleep(Math.random() * 1000)
     if (interceptor.analysis) {
         console.log('  Start analysis \n');
-        analysis(utils.getToday().dateStr + '.json')
+        mailAttachment.push({
+            filename: fsName.dateAnalysisMD,
+            path: fsName.dateAnalysisMD
+        })
+        mailAttachment.push({
+            filename: fsName.dateAnalysisJSON,
+            path: fsName.dateAnalysisJSON
+        })
+        analysis(fsName.dateJSON)
     } else {
         console.log('No need for analysis progress end now ')
     }
+    await utils.sleep(Math.random() * 1000)
+    sendMail()
+    
+    
 
 };
 

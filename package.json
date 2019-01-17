@@ -12,6 +12,7 @@
   "dependencies": {
     "cli-progress": "^2.1.1",
     "lei-stream": "^1.4.2",
+    "nodemailer": "^5.1.1",
     "request": "^2.88.0"
   }
 }
