@@ -10,12 +10,14 @@ var interceptor = {
     k: 25,
     d: 25,
     j: 25,
+    rsi:20,
     macdMin: -0.6,
     macdMax: 0.00,
     priceMin: 4.00,
     priceMax: 80.00,
     requireMACD: true,
     requireKDJ: true,
+    requireRSI:true,
     requirePrice: true,
     STinclude: false,
     days: -1,
@@ -31,11 +33,12 @@ var interceptor = {
             macd,
             kdjk,
             kdjd,
-            kdjj
+            kdjj,
+            rsi1
         } = FSD
         FSD.url = 'https://xueqiu.com/S/' + code
         let str = `${code} ${name} 价格: ${open} 涨跌: ${percent} ${macd} ${kdjk} ${kdjd} ${kdjj}`
-        if (this.matchMACD(macd) & this.matchPrice(open) & this.includeST(name) & this.matchKDJ(kdjk, kdjd, kdjj)) {
+        if (this.matchMACD(macd) & this.matchPrice(open) & this.includeST(name) & this.matchKDJ(kdjk, kdjd, kdjj)&this.matchRSI(rsi1)) {
             analysisArr.push(FSD)
             //utils.appendfs(utils.getToday().dateStr + '-analysis.json',JSON.stringify(FSD)+'\n')
 
@@ -95,6 +98,17 @@ var interceptor = {
                 return false
             }
         } else {
+            return true
+        }
+    },
+    matchRSI:function (rsi1) {
+        if(this.requireRSI){
+            if (rsi1<=this.rsi) {
+                return true
+            } else {
+                return false
+            }
+        }else{
             return true
         }
     }
