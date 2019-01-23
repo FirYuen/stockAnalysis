@@ -7,6 +7,7 @@ var interceptor = {
     analysis: true,
     fetchTodayData: true,
     mailNotify: true,
+    interval:1000,
     k: 25,
     d: 25,
     j: 25,
@@ -254,7 +255,7 @@ function getStockData(stock, index, cookie){
     return Promise.race([
         getStockDataP(stock, index, cookie),
         new Promise(function (resolve, reject) {
-          setTimeout(() => reject(new Error(`${stock.sname} request timeout`)), 5000)
+          setTimeout(() => reject(new Error(`${stock.sname} request timeout`)), 2000)
         })
       ]);
 }
@@ -328,7 +329,7 @@ async function sendMail() {
 async function fetchAllAndAnalysis(chosenList, cookie) {
     if (interceptor.fetchTodayData) {
         await asyncForEach(chosenList, async (ele, index) => {
-            await utils.sleep(Math.random() * 0) // 增加时延，防止被封ip
+            await utils.sleep(Math.random() * interceptor.interval) // 增加时延，防止被封ip
             await getStockData(ele, index, cookie).then((body)=>{
                 //console.log(body);
             },(err)=>{
