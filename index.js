@@ -6,22 +6,22 @@ var nodemailer = require("nodemailer");
 var interceptor = {
     analysis: true,
     fetchTodayData: true,
-    mailNotify:true,
+    mailNotify: true,
     k: 25,
     d: 25,
     j: 25,
-    rsi:30,
+    rsi: 30,
     macdMin: -0.4,
     macdMax: 0.1,
     priceMin: 4.00,
     priceMax: 80.00,
     requireMACD: true,
     requireKDJ: true,
-    requireRSI:true,
+    requireRSI: true,
     requirePrice: true,
     STinclude: false,
     days: -1,
-    stockCount: 3,//'ALL',//'ALL' //接受number 或者 字符串 ALL
+    stockCount: 'ALL', //'ALL' //接受number 或者 字符串 ALL
     interceptor: function (data) {
         let FSD = formatedStockData(data)
         let {
@@ -38,7 +38,7 @@ var interceptor = {
         } = FSD
         FSD.url = 'https://xueqiu.com/S/' + code
         let str = `${code} ${name} 价格: ${open} 涨跌: ${percent} ${macd} ${kdjk} ${kdjd} ${kdjj} ${rsi1}`
-        if (this.matchMACD(macd) & this.matchPrice(open) & this.includeST(name) & this.matchKDJ(kdjk, kdjd, kdjj)&this.matchRSI(rsi1)) {
+        if (this.matchMACD(macd) & this.matchPrice(open) & this.includeST(name) & this.matchKDJ(kdjk, kdjd, kdjj) & this.matchRSI(rsi1)) {
             analysisArr.push(FSD)
             //utils.appendfs(utils.getToday().dateStr + '-analysis.json',JSON.stringify(FSD)+'\n')
             html = html + str + ` <a href="${FSD.url}">${name}</a> <br>`
@@ -96,14 +96,14 @@ var interceptor = {
             return true
         }
     },
-    matchRSI:function (rsi1) {
-        if(this.requireRSI){
-            if (rsi1<=this.rsi) {
+    matchRSI: function (rsi1) {
+        if (this.requireRSI) {
+            if (rsi1 <= this.rsi) {
                 return true
             } else {
                 return false
             }
-        }else{
+        } else {
             return true
         }
     }
@@ -142,7 +142,7 @@ var utils = {
 }
 var fsName = {
     dateJSON: utils.getToday().dateStr + '.json',
-    dataHtml:utils.getToday().dateStr + '.html',
+    dataHtml: utils.getToday().dateStr + '.html',
     dateAnalysisMD: utils.getToday().dateStr + '.md',
     dateAnalysisJSON: utils.getToday().dateStr + '-analysis.json'
 }
@@ -217,7 +217,8 @@ function getCookie() {
     })
 }
 //获取单支股票数据
-function getStockData(stock, index, cookie) {
+function getStockDataP(stock, index, cookie) {
+    //console.log(stock);
     return new Promise(function (resolve, reject) {
         stockName = stock.sname
         stockCode = stock.symbol.toUpperCase()
@@ -229,20 +230,33 @@ function getStockData(stock, index, cookie) {
                 Cookie: cookie, //这里是登陆后得到的cookie,(重点)
             }
         }
-        request(stockDataOpts, (err, resp, body) => {
-            if (resp.statusCode === 200) {
-                let respData = JSON.parse(body)
-                if (respData.data.item) {
-                    respData.data.sName = stockName
-                    //fsName = utils.getToday().dateStr + '.json'
-                    utils.appendfs(fsName.dateJSON, JSON.stringify(respData) + '\n')
-                    resolve()
+        request(stockDataOpts,(err, resp, body) => {
+            //console.log(err);
+            if (!err) {
+                if (resp.statusCode === 200) {
+                    let respData = JSON.parse(body)
+                    if (respData.data.item) {
+                        respData.data.sName = stockName
+                        //fsName = utils.getToday().dateStr + '.json'
+                        utils.appendfs(fsName.dateJSON, JSON.stringify(respData) + '\n')
+                        resolve(body)
+                    }
+                } else {
+                    reject(resp.statusCode)
                 }
             } else {
-                reject()
+                reject(err)
             }
         })
     })
+}
+function getStockData(stock, index, cookie){
+    return Promise.race([
+        getStockDataP(stock, index, cookie),
+        new Promise(function (resolve, reject) {
+          setTimeout(() => reject(new Error(`${stock.sname} request timeout`)), 5000)
+        })
+      ]);
 }
 //asyncForEach
 async function asyncForEach(arr, callback) {
@@ -314,17 +328,21 @@ async function sendMail() {
 async function fetchAllAndAnalysis(chosenList, cookie) {
     if (interceptor.fetchTodayData) {
         await asyncForEach(chosenList, async (ele, index) => {
-            await utils.sleep(Math.random() * 500) // 增加时延，防止被封ip
-            await getStockData(ele, index, cookie)
+            await utils.sleep(Math.random() * 0) // 增加时延，防止被封ip
+            await getStockData(ele, index, cookie).then((body)=>{
+                //console.log(body);
+            },(err)=>{
+                //console.log(err);
+            })
             fetchBar.update(index + 1);
         });
         mailAttachment.push({
             filename: fsName.dateJSON,
             path: fsName.dateJSON
         })
-        fs.readFile('Templete.html','utf8',(err,html)=>{
-            fs.readFile(fsName.dateJSON,'utf8',(err,json)=>{
-                fs.writeFile(fsName.dataHtml,html.replace('DATADATA',json),()=>{
+        fs.readFile('Templete.html', 'utf8', (err, html) => {
+            fs.readFile(fsName.dateJSON, 'utf8', (err, json) => {
+                fs.writeFile(fsName.dataHtml, html.replace('DATADATA', json), () => {
                     mailAttachment.push({
                         filename: fsName.dataHtml,
                         path: fsName.dataHtml
@@ -350,10 +368,10 @@ async function fetchAllAndAnalysis(chosenList, cookie) {
         console.log('No need for analysis progress end now ')
     }
     await utils.sleep(Math.random() * 1000)
-    if(interceptor.mailNotify){
+    if (interceptor.mailNotify) {
         sendMail()
         console.log(`    Sending Mail`);
-    }else{
+    } else {
         console.log(`    Don't need to send mail`);
     }
 };
