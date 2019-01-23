@@ -3,16 +3,16 @@ var fs = require("fs")
 var ProgressBar = require('cli-progress');
 var readLine = require('lei-stream').readLine;
 var nodemailer = require("nodemailer");
-
 var interceptor = {
     analysis: true,
     fetchTodayData: true,
+    mailNotify:true,
     k: 25,
     d: 25,
     j: 25,
-    rsi:20,
-    macdMin: -0.6,
-    macdMax: 0.00,
+    rsi:30,
+    macdMin: -0.4,
+    macdMax: 0.1,
     priceMin: 4.00,
     priceMax: 80.00,
     requireMACD: true,
@@ -21,7 +21,7 @@ var interceptor = {
     requirePrice: true,
     STinclude: false,
     days: -1,
-    stockCount: 'ALL',//'ALL' //接受number 或者 字符串 ALL
+    stockCount: 3,//'ALL',//'ALL' //接受number 或者 字符串 ALL
     interceptor: function (data) {
         let FSD = formatedStockData(data)
         let {
@@ -37,15 +37,13 @@ var interceptor = {
             rsi1
         } = FSD
         FSD.url = 'https://xueqiu.com/S/' + code
-        let str = `${code} ${name} 价格: ${open} 涨跌: ${percent} ${macd} ${kdjk} ${kdjd} ${kdjj}`
+        let str = `${code} ${name} 价格: ${open} 涨跌: ${percent} ${macd} ${kdjk} ${kdjd} ${kdjj} ${rsi1}`
         if (this.matchMACD(macd) & this.matchPrice(open) & this.includeST(name) & this.matchKDJ(kdjk, kdjd, kdjj)&this.matchRSI(rsi1)) {
             analysisArr.push(FSD)
             //utils.appendfs(utils.getToday().dateStr + '-analysis.json',JSON.stringify(FSD)+'\n')
-
             html = html + str + ` <a href="${FSD.url}">${name}</a> <br>`
             let mdStr = `- [ ]  ${str} [${name}](${FSD.url}) \n`
             analysisMD = analysisMD + mdStr
-
             //utils.appendfs(utils.getToday().dateStr + '.md',mdStr)
             console.log(str + ` ${FSD.url}`);
         }
@@ -75,15 +73,12 @@ var interceptor = {
         } else {
             return false
         }
-
     },
     includeST: function (name) {
         if (this.STinclude == false) {
             if (name.indexOf("ST") == -1) {
-
                 return true
             } else {
-
                 return false
             }
         } else {
@@ -113,8 +108,6 @@ var interceptor = {
         }
     }
 }
-
-
 var utils = {
     getToday: function () {
         let date = new Date()
@@ -146,30 +139,24 @@ var utils = {
             }
         });
     },
-
 }
-
 var fsName = {
     dateJSON: utils.getToday().dateStr + '.json',
+    dataHtml:utils.getToday().dateStr + '.html',
     dateAnalysisMD: utils.getToday().dateStr + '.md',
     dateAnalysisJSON: utils.getToday().dateStr + '-analysis.json'
 }
-
-
 var fetchBar = new ProgressBar.Bar({
     'stopOnComplete': true
 }, ProgressBar.Presets.shades_classic);
-
 var chosenList = []
 var analysisMD = ''
 var analysisArr = []
 var html = ''
 var mailAttachment = []
-
 var headers = {
     'User-Agent': `Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/59.0.3071.115 Safari/537.36`,
 };
-
 //获取随机数量的股票
 function getRandomArrElement(arr, eleCount) {
     let count = arr.length;
@@ -191,7 +178,6 @@ function getRandomArrElement(arr, eleCount) {
     }
     return result
 }
-
 //获取所有股票
 function getStockId() {
     return new Promise(function (resolve, reject) {
@@ -213,7 +199,6 @@ function getStockId() {
         })
     })
 }
-
 //设置cookie
 function getCookie() {
     return new Promise((resolve, reject) => {
@@ -224,7 +209,6 @@ function getCookie() {
         }
         request(xueqiuopt, (err, resp, body) => {
             if (resp.statusCode === 200) {
-
                 resolve(resp.headers['set-cookie'])
             } else {
                 reject()
@@ -232,7 +216,6 @@ function getCookie() {
         })
     })
 }
-
 //获取单支股票数据
 function getStockData(stock, index, cookie) {
     return new Promise(function (resolve, reject) {
@@ -249,17 +232,18 @@ function getStockData(stock, index, cookie) {
         request(stockDataOpts, (err, resp, body) => {
             if (resp.statusCode === 200) {
                 let respData = JSON.parse(body)
-                respData.data.sName = stockName
-                //fsName = utils.getToday().dateStr + '.json'
-                utils.appendfs(fsName.dateJSON, JSON.stringify(respData) + '\n')
-                resolve()
+                if (respData.data.item) {
+                    respData.data.sName = stockName
+                    //fsName = utils.getToday().dateStr + '.json'
+                    utils.appendfs(fsName.dateJSON, JSON.stringify(respData) + '\n')
+                    resolve()
+                }
             } else {
                 reject()
             }
         })
     })
 }
-
 //asyncForEach
 async function asyncForEach(arr, callback) {
     //const O = Object(arr);
@@ -267,11 +251,9 @@ async function asyncForEach(arr, callback) {
     while (index < arr.length) {
         //const kValue = arr[k];
         await callback(arr[index], index);
-
         index++;
     }
 };
-
 function formatedStockData(stockData) {
     var FSD = {}
     FSD.code = stockData.symbol
@@ -293,7 +275,6 @@ function analysis(fsName) {
             return JSON.parse(data);
         }
     });
-
     line.on('data', (json) => {
         let data = json.data
         if (data.symbol) {
@@ -301,7 +282,6 @@ function analysis(fsName) {
         }
         line.next()
     })
-
     line.on('end', () => {
         utils.writefs(utils.getToday().dateStr + '.md', analysisMD)
         let analysisJSON = {}
@@ -312,10 +292,6 @@ function analysis(fsName) {
         console.log(`    Anaysis end`);
     });
 }
-
-
-
-
 async function sendMail() {
     let mailOptions
     await fs.readFile("mailAccount.json", (err, data) => {
@@ -335,7 +311,6 @@ async function sendMail() {
         transporter.sendMail(mailOptions)
     })
 }
-
 async function fetchAllAndAnalysis(chosenList, cookie) {
     if (interceptor.fetchTodayData) {
         await asyncForEach(chosenList, async (ele, index) => {
@@ -346,6 +321,16 @@ async function fetchAllAndAnalysis(chosenList, cookie) {
         mailAttachment.push({
             filename: fsName.dateJSON,
             path: fsName.dateJSON
+        })
+        fs.readFile('Templete.html','utf8',(err,html)=>{
+            fs.readFile(fsName.dateJSON,'utf8',(err,json)=>{
+                fs.writeFile(fsName.dataHtml,html.replace('DATADATA',json),()=>{
+                    mailAttachment.push({
+                        filename: fsName.dataHtml,
+                        path: fsName.dataHtml
+                    })
+                })
+            })
         })
     }
     fetchBar.stop()
@@ -365,12 +350,13 @@ async function fetchAllAndAnalysis(chosenList, cookie) {
         console.log('No need for analysis progress end now ')
     }
     await utils.sleep(Math.random() * 1000)
-    sendMail()
-    
-    
-
+    if(interceptor.mailNotify){
+        sendMail()
+        console.log(`    Sending Mail`);
+    }else{
+        console.log(`    Don't need to send mail`);
+    }
 };
-
 !(function () {
     getStockId().then((chosenList) => {
         getCookie().then((cookie) => {

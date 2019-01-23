@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <link href="https://cdn.bootcss.com/spectre.css/0.5.8/spectre.min.css" rel="stylesheet">
+    <link href="https://cdn.bootcss.com/spectre.css/0.5.8/spectre-icons.min.css" rel="stylesheet">
+    <script src="https://cdn.bootcss.com/vue/2.5.22/vue.min.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/animate.css@3.5.1" rel="stylesheet" type="text/css">
+    <style>
+        * {
+    margin: 0;
+    padding: 0
+}
+* {
+    box-sizing: border-box;
+    font-family: Arial, Helvetica, sans-serif;
+}
+*::after {
+    box-sizing: border-box
+}
+*::before {
+    box-sizing: border-box
+}
+input {
+    font: inherit;
+    line-height: 1.5;
+}
+ul,
+ol {
+    list-style: none;
+}
+a {
+    color: inherit;
+    text-decoration: none
+}
+body {
+    /* font-size: 12px; */
+    line-height: 1.5
+}
+.inputlabel{
+    width: 6em;
+}
+.container{
+    padding: 40px
+}
+</style>
+</head>
+<body>
+    <div class="container">
+        <h1>Stock Filter</h1>
+        <div id="stockList">
+            <div class="columns">
+                <div class="column col-3">
+                    <input type="file" name="" id="uploadedJson">
+                </div>
+                <div class="column col-1">
+                    <!-- <button v-on:click="fetch()" class="btn btn-primary">获取数据</button> -->
+                    <button v-on:click="upload()" class="btn btn-primary">获取数据</button>
+                </div>
+                <div class="column col-1">
+                    <button v-on:click="filter()" class="btn btn-primary">过滤数据</button>
+                </div>
+            </div>
+            <br>
+            <div class="p-fixed" style="right:10px;top:10px;font-size: 15px">
+                <div class="columns">
+                    <!-- <div class="column  col-mr-auto"></div> -->
+                    <div class="column col-3">
+                        <div class="form-group">
+                            <label class="form-switch">
+                                <input type="checkbox" v-on:click="KDJfilter()">
+                                <i class="form-icon"></i> 过滤KDJ
+                            </label>
+                        </div>
+                    </div>
+                    <div class="column col-3">
+                        <div class="form-group">
+                            <label class="form-switch">
+                                <input type="checkbox" v-on:click="Pricefilter()">
+                                <i class="form-icon"></i> 过滤价格
+                            </label>
+                        </div>
+                    </div>
+                    <div class="column col-3">
+                        <div class="form-group">
+                            <label class="form-switch">
+                                <input type="checkbox" v-on:click="MACDfilter()">
+                                <i class="form-icon"></i> 过滤MACD
+                            </label>
+                        </div>
+                    </div>
+                    <div class="column col-3">
+                        <div class="form-group">
+                            <label class="form-switch">
+                                <input type="checkbox" v-on:click="RSIfilter()">
+                                <i class="form-icon"></i> 过滤RSI
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                <div v-show="interceptor.requireKDJ">
+                    <div class="columns">
+                        <div class="column col-3 col-mr-auto"></div>
+                        <div class="column col-3">
+                            <div class="input-group">
+                                <span class="input-group-addon addon-sm">KDJK</span>
+                                <input type="text" class="form-input input-sm" v-model="interceptor.k">
+                            </div>
+                        </div>
+                        <div class="column col-3">
+                            <div class="input-group">
+                                <span class="input-group-addon addon-sm">KDJ</span>
+                                <input type="text" class="form-input input-sm" v-model="interceptor.d">
+                            </div>
+                        </div>
+                        <div class="column col-3">
+                            <div class="input-group">
+                                <span class="input-group-addon addon-sm">KDJJ</span>
+                                <input type="text" class="form-input input-sm" v-model="interceptor.j">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div v-show="interceptor.requirePrice">
+                    <div class="columns">
+                        <div class="column col-4 col-mr-auto"></div>
+                        <div class="column col-4">
+                            <div class="input-group">
+                                <span class="input-group-addon addon-sm">价格最低</span>
+                                <input v-model="interceptor.priceMin" type="text" class="form-input input-sm">
+                            </div>
+                        </div>
+                        <div class="column col-4">
+                            <div class="input-group">
+                                <span class="input-group-addon addon-sm">价格最高</span>
+                                <input v-model="interceptor.priceMax" type="text" class="form-input input-sm">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div v-show="interceptor.requireMACD">
+                    <div class="columns">
+                        <div class="column col-4 col-mr-auto"></div>
+                        <div class="column col-4">
+                            <div class="input-group">
+                                <span class="input-group-addon addon-sm">MACD最低</span>
+                                <input type="text" class="form-input input-sm" v-model="interceptor.macdMin">
+                            </div>
+                        </div>
+                        <div class="column col-4">
+                            <div class="input-group">
+                                <span class="input-group-addon addon-sm">MACD最高</span>
+                                <input type="text" class="form-input input-sm" v-model="interceptor.macdMax">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div v-show="interceptor.requireRSI">
+                    <div class="columns">
+                        <div class="column col-4 col-mr-auto"></div>
+                        <div class="column col-4">
+                            <div class="input-group">
+                                <span class="input-group-addon addon-sm">6日RSI最高</span>
+                                <input type="text" class="form-input input-sm" v-model="interceptor.rsi">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <table class="table table-hover">
+                <th v-for="k in target">
+                    <h4>{{k}}</h4>
+                </th>
+                <tr v-for="(stock,index) in stockData" v-show="stock.show">
+                    <transition name="custom-classes-transition" enter-active-class="animated tada" leave-active-class="animated bounceOutRight">
+                        <td v-for="(v,k) in stock.data">
+                            <span v-if="k!='url'">{{v}}</span>
+                            <span v-else><a v-bind:href="v" target="view_window">{{stock.data.name}}</a></span>
+                        </td>
+                    </transition>
+                </tr>
+            </table>
+        </div>
+    </div>
+    <script>
+        var vm = new Vue({
+            el: "#stockList",
+            data: {
+                origindata: `DATADATA`,
+                stockData: [],
+                target: ['code', 'name', 'open', 'percent', 'macd', 'kdjk', 'kdjd', 'kdjj', 'rsi1', 'url'],
+                interceptor: {
+                    analysis: true,
+                    fetchTodayData: false,
+                    k: 25,
+                    d: 25,
+                    j: 25,
+                    rsi: 30,
+                    macdMin: -0.4,
+                    macdMax: 0.1,
+                    priceMin: 4.00,
+                    priceMax: 80.00,
+                    requireMACD: false,
+                    requireKDJ: false,
+                    requireRSI: false,
+                    requirePrice: false,
+                    STinclude: true,
+                }
+            },
+            methods: {
+                filter: function () {
+                    this.stockData.forEach(e => {
+                        let {
+                            code,
+                            name,
+                            timestamp,
+                            open,
+                            percent,
+                            macd,
+                            kdjk,
+                            kdjd,
+                            kdjj,
+                            rsi1
+                        } = e.data
+                        if (this.matchMACD(macd) & this.matchPrice(open) & this.includeST(name) &
+                            this.matchKDJ(kdjk, kdjd, kdjj) & this.matchRSI(rsi1)) {
+                            e.show = true
+                        } else {
+                            e.show = false
+                        }
+                    })
+                },
+                MACDfilter: function () {
+                    this.interceptor.requireMACD = !this.interceptor.requireMACD
+                },
+                KDJfilter: function () {
+                    this.interceptor.requireKDJ = !this.interceptor.requireKDJ
+                },
+                RSIfilter: function () {
+                    this.interceptor.requireRSI = !this.interceptor.requireRSI
+                },
+                Pricefilter: function () {
+                    this.interceptor.requirePrice = !this.interceptor.requirePrice
+                },
+                matchPrice: function (price) {
+                    if (this.interceptor.requirePrice) {
+                        if ((price > this.interceptor.priceMin) & (price < this.interceptor.priceMax)) {
+                            return true
+                        } else {
+                            return false
+                        }
+                    } else {
+                        return true
+                    }
+                },
+                matchMACD: function (macd) {
+                    if (typeof (macd) == 'number') {
+                        if (this.interceptor.requireMACD) {
+                            if ((macd > this.interceptor.macdMin) & (macd < this.interceptor.macdMax)) {
+                                return true
+                            } else {
+                                return false
+                            }
+                        } else {
+                            return true
+                        }
+                    } else {
+                        return false
+                    }
+                },
+                includeST: function (name) {
+                    if (this.interceptor.STinclude == false) {
+                        if (name.indexOf("ST") == -1) {
+                            return true
+                        } else {
+                            return false
+                        }
+                    } else {
+                        return true
+                    }
+                },
+                matchKDJ: function (kdjk, kdjd, kdjj) {
+                    if (this.interceptor.requireKDJ) {
+                        if (kdjk < this.interceptor.k & kdjd < this.interceptor.d & kdjj < this.interceptor
+                            .j) {
+                            return true
+                        } else {
+                            return false
+                        }
+                    } else {
+                        return true
+                    }
+                },
+                matchRSI: function (rsi1) {
+                    if (this.interceptor.requireRSI) {
+                        if (rsi1 <= this.interceptor.rsi) {
+                            return true
+                        } else {
+                            return false
+                        }
+                    } else {
+                        return true
+                    }
+                },
+                hide: function name() {
+                    this.show = !this.show
+                },
+                fetch: function () {
+                    let date = new Date()
+                    let fsName = `${date.getMonth()+1}-${date.getDate()}.json`
+                    axios.get(fsName).then((resp) => {
+                        var patten = /{"data.+":""}/g
+                        data = resp.data
+                        li = data.match(patten)
+                    }).then(() => {
+                        li.forEach(element => {
+                            data = JSON.parse(element).data
+                            if (data.item[0]) {
+                                let FSD = this.formatedStockData(data)
+                                Object.keys(FSD).forEach(e => {
+                                    if (this.target.indexOf(e) == -1) {
+                                        delete FSD[e]
+                                    }
+                                });
+                                //FSD.show = true
+                                FSD.url = 'https://xueqiu.com/S/' + FSD.code
+                                this.stockData.push({
+                                    show: true,
+                                    data: FSD
+                                })
+                                //this.stockinfo.push(element)
+                            }
+                        });
+                    })
+                },
+                upload: function () {
+                    this.stockData = []
+                    var resultFile = document.getElementById("uploadedJson").files[0];
+                    var reader = new FileReader();
+                    reader.readAsText(resultFile, "UTF-8");
+                    pushData = this.pushData
+                    filter = this.filter
+                    reader.onload = function (evt) {
+                        let fileString = evt.target.result;
+                        let patten = /{"data.+":""}/g
+                        li = fileString.match(patten)
+                        pushData(li)
+                        filter()
+                    }
+                },
+                init: function () {
+                    this.stockData = []
+                    var resultFile = document.getElementById("uploadedJson").files[0];
+                    pushData = this.pushData
+                    filter = this.filter
+                    let fileString = this.origindata;
+                        let patten = /{"data.+":""}/g
+                        li = fileString.match(patten)
+                        pushData(li)
+                        filter()
+                },
+                pushData: function (li) {
+                    li.forEach(element => {
+                        data = JSON.parse(element).data
+                        if (data.item[0]) {
+                            let FSD = this.formatedStockData(data)
+                            Object.keys(FSD).forEach(e => {
+                                if (this.target.indexOf(e) == -1) {
+                                    delete FSD[e]
+                                }
+                            });
+                            //FSD.show = true
+                            FSD.url = 'https://xueqiu.com/S/' + FSD.code
+                            this.stockData.push({
+                                show: true,
+                                data: FSD
+                            })
+                            //this.stockinfo.push(element)
+                        }
+                    });
+                },
+                formatedStockData: function (stockData) {
+                    var FSD = {}
+                    FSD.code = stockData.symbol
+                    FSD.name = stockData.sName
+                    stockData.column.forEach((e, i) => {
+                        FSD[e] = stockData.item[0][i]
+                    })
+                    return FSD
+                }
+            }
+        })
+       window.onload=function () {
+           
+           vm.init()
+       }
+    </script>
+</body>
+</html>
