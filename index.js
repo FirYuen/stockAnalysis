@@ -3,11 +3,12 @@ var fs = require("fs")
 var ProgressBar = require('cli-progress');
 var readLine = require('lei-stream').readLine;
 var nodemailer = require("nodemailer");
+var path = require('path')
 var interceptor = {
     analysis: true,
     fetchTodayData: true,
     mailNotify: true,
-    interval:1000,
+    interval: 1000,
     k: 25,
     d: 25,
     j: 25,
@@ -22,7 +23,9 @@ var interceptor = {
     requirePrice: true,
     STinclude: false,
     days: -1,
-    stockCount: 'ALL', //'ALL' //接受number 或者 字符串 ALL
+    //fileDir: '/Users/yuanpengfei/Repo/stockAnalysis/',
+    fileDir: __dirname,
+    stockCount: 3, //'ALL', //'ALL' //接受number 或者 字符串 ALL
     interceptor: function (data) {
         let FSD = formatedStockData(data)
         let {
@@ -133,8 +136,9 @@ var utils = {
             }
         });
     },
-    writefs: function (fsName, str) {
-        fs.writeFile(fsName, str, function (err) {
+    writefs: function (fsPath, str) {
+    
+        fs.writeFile(fsPath, str, function (err) {
             if (err) {
                 return console.error(err);
             }
@@ -142,10 +146,26 @@ var utils = {
     },
 }
 var fsName = {
-    dateJSON: utils.getToday().dateStr + '.json',
-    dataHtml: utils.getToday().dateStr + '.html',
-    dateAnalysisMD: utils.getToday().dateStr + '.md',
-    dateAnalysisJSON: utils.getToday().dateStr + '-analysis.json'
+    dateJSON: path.format({
+        dir: `${interceptor.fileDir}/${utils.getToday().dateStr}`,
+        name: `${utils.getToday().dateStr}`,
+        ext: '.json'
+    }),
+    dataHtml: path.format({
+        dir: `${interceptor.fileDir}/${utils.getToday().dateStr}`,
+        name: `${utils.getToday().dateStr}`,
+        ext: '.html'
+    }),
+    dateAnalysisMD: path.format({
+        dir: `${interceptor.fileDir}/${utils.getToday().dateStr}`,
+        name: `${utils.getToday().dateStr}`,
+        ext: '.md'
+    }),
+    dateAnalysisJSON: path.format({
+        dir: `${interceptor.fileDir}/${utils.getToday().dateStr}`,
+        name: `${utils.getToday().dateStr}-analysis`,
+        ext: '.json'
+    })
 }
 var fetchBar = new ProgressBar.Bar({
     'stopOnComplete': true
@@ -231,7 +251,7 @@ function getStockDataP(stock, index, cookie) {
                 Cookie: cookie, //这里是登陆后得到的cookie,(重点)
             }
         }
-        request(stockDataOpts,(err, resp, body) => {
+        request(stockDataOpts, (err, resp, body) => {
             //console.log(err);
             if (!err) {
                 if (resp.statusCode === 200) {
@@ -251,13 +271,14 @@ function getStockDataP(stock, index, cookie) {
         })
     })
 }
-function getStockData(stock, index, cookie){
+
+function getStockData(stock, index, cookie) {
     return Promise.race([
         getStockDataP(stock, index, cookie),
         new Promise(function (resolve, reject) {
-          setTimeout(() => reject(new Error(`${stock.sname} request timeout`)), 2000)
+            setTimeout(() => reject(new Error(`${stock.sname} request timeout`)), 2000)
         })
-      ]);
+    ]);
 }
 //asyncForEach
 async function asyncForEach(arr, callback) {
@@ -269,6 +290,7 @@ async function asyncForEach(arr, callback) {
         index++;
     }
 };
+
 function formatedStockData(stockData) {
     var FSD = {}
     FSD.code = stockData.symbol
@@ -279,8 +301,8 @@ function formatedStockData(stockData) {
     return FSD
 }
 //分析数据
-function analysis(fsName) {
-    let line = readLine(fs.createReadStream(fsName), {
+function analysis(fsPath) {
+    let line = readLine(fs.createReadStream(fsPath), {
         // 换行符，默认\n
         newline: '\n',
         // 是否自动读取下一行，默认false
@@ -298,18 +320,23 @@ function analysis(fsName) {
         line.next()
     })
     line.on('end', () => {
-        utils.writefs(utils.getToday().dateStr + '.md', analysisMD)
+       
+        
+        utils.writefs(fsName.dateAnalysisMD, analysisMD)
         let analysisJSON = {}
         analysisArr.forEach((e, i) => {
             analysisJSON[i] = e
         });
-        utils.writefs(utils.getToday().dateStr + '-analysis.json', JSON.stringify(analysisJSON))
+        utils.writefs(fsName.dateAnalysisJSON, JSON.stringify(analysisJSON))
         console.log(`    Anaysis end`);
     });
 }
 async function sendMail() {
     let mailOptions
-    await fs.readFile("mailAccount.json", (err, data) => {
+    await fs.readFile(path.format({dir:interceptor.fileDir,
+        name:'mailAccount',
+        ext:'.json'
+    }), (err, data) => {
         let mailInfo = JSON.parse(data)
         let transporter = nodemailer.createTransport(
             mailInfo.accountInfo
@@ -330,9 +357,9 @@ async function fetchAllAndAnalysis(chosenList, cookie) {
     if (interceptor.fetchTodayData) {
         await asyncForEach(chosenList, async (ele, index) => {
             await utils.sleep(Math.random() * interceptor.interval) // 增加时延，防止被封ip
-            await getStockData(ele, index, cookie).then((body)=>{
+            await getStockData(ele, index, cookie).then((body) => {
                 //console.log(body);
-            },(err)=>{
+            }, (err) => {
                 //console.log(err);
             })
             fetchBar.update(index + 1);
@@ -341,7 +368,11 @@ async function fetchAllAndAnalysis(chosenList, cookie) {
             filename: fsName.dateJSON,
             path: fsName.dateJSON
         })
-        fs.readFile('Templete.html', 'utf8', (err, html) => {
+        fs.readFile(path.format({dir:interceptor.fileDir,
+            name:'Templete',
+            ext:'.html'
+        }), 'utf8', (err, data) => {
+            html = data
             fs.readFile(fsName.dateJSON, 'utf8', (err, json) => {
                 fs.writeFile(fsName.dataHtml, html.replace('DATADATA', json), () => {
                     mailAttachment.push({
@@ -377,9 +408,15 @@ async function fetchAllAndAnalysis(chosenList, cookie) {
     }
 };
 !(function () {
-    getStockId().then((chosenList) => {
-        getCookie().then((cookie) => {
-            fetchAllAndAnalysis(chosenList, cookie)
+    fs.rmdir(`${__dirname}/${utils.getToday().dateStr}`,()=>{
+        fs.mkdir(`${__dirname}/${utils.getToday().dateStr}`,()=>{
+            getStockId().then((chosenList) => {
+                getCookie().then((cookie) => {
+                    fetchAllAndAnalysis(chosenList, cookie)
+                })
+            })
         })
     })
+
+
 })()
