@@ -1,13 +1,15 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
     <link href="https://cdn.bootcss.com/spectre.css/0.5.8/spectre.min.css" rel="stylesheet">
     <link href="https://cdn.bootcss.com/spectre.css/0.5.8/spectre-icons.min.css" rel="stylesheet">
-    <script src="https://cdn.bootcss.com/vue/2.5.22/vue.min.js"></script>
+    <script src="https://cdn.bootcss.com/vue/2.5.22/vue.js"></script>
     <link href="https://cdn.jsdelivr.net/npm/animate.css@3.5.1" rel="stylesheet" type="text/css">
+    <script src="https://cdn.bootcss.com/axios/0.19.0-beta.1/axios.min.js"></script>
     <style>
         * {
     margin: 0;
@@ -26,6 +28,7 @@
 input {
     font: inherit;
     line-height: 1.5;
+    text-decoration: none;
 }
 ul,
 ol {
@@ -43,31 +46,44 @@ body {
     width: 6em;
 }
 .container{
-    padding: 40px
+    padding: 40px 0px 30px 20px;
+}
+.table{
+    border-bottom: 1px solid red;
+}
+.up{
+    color: red
+}
+.down{
+    color: green
 }
 </style>
 </head>
+
 <body>
     <div class="container">
         <h1>Stock Filter</h1>
         <div id="stockList">
             <div class="columns">
-                <div class="column col-3">
-                    <input type="file" name="" id="uploadedJson">
+                <div class="column col-1 col-xs-4">
+                    <label class="btn btn-primary">
+                        <span>选择文件</span>
+                        <input type="file" style="display: none" id="uploadedJson">
+                    </label>
                 </div>
-                <div class="column col-1">
+                <div class="column col-1 col-xs-4">
                     <!-- <button v-on:click="fetch()" class="btn btn-primary">获取数据</button> -->
-                    <button v-on:click="upload()" class="btn btn-primary">获取数据</button>
+                    <button v-on:click="upload()" class="btn btn-primary">解析文件</button>
                 </div>
-                <div class="column col-1">
+                <div class="column col-1 col-xs-4">
                     <button v-on:click="filter()" class="btn btn-primary">过滤数据</button>
                 </div>
             </div>
             <br>
-            <div class="p-fixed" style="right:10px;top:10px;font-size: 15px">
+            <div>
                 <div class="columns">
                     <!-- <div class="column  col-mr-auto"></div> -->
-                    <div class="column col-3">
+                    <div class="column col-2 col-xs-6">
                         <div class="form-group">
                             <label class="form-switch">
                                 <input type="checkbox" v-on:click="KDJfilter()">
@@ -75,7 +91,7 @@ body {
                             </label>
                         </div>
                     </div>
-                    <div class="column col-3">
+                    <div class="column col-2 col-xs-6">
                         <div class="form-group">
                             <label class="form-switch">
                                 <input type="checkbox" v-on:click="Pricefilter()">
@@ -83,7 +99,7 @@ body {
                             </label>
                         </div>
                     </div>
-                    <div class="column col-3">
+                    <div class="column col-2 col-xs-6">
                         <div class="form-group">
                             <label class="form-switch">
                                 <input type="checkbox" v-on:click="MACDfilter()">
@@ -91,7 +107,7 @@ body {
                             </label>
                         </div>
                     </div>
-                    <div class="column col-3">
+                    <div class="column col-2 col-xs-6">
                         <div class="form-group">
                             <label class="form-switch">
                                 <input type="checkbox" v-on:click="RSIfilter()">
@@ -102,20 +118,19 @@ body {
                 </div>
                 <div v-show="interceptor.requireKDJ">
                     <div class="columns">
-                        <div class="column col-3 col-mr-auto"></div>
-                        <div class="column col-3">
+                        <div class="column col-2 col-xs-4">
                             <div class="input-group">
                                 <span class="input-group-addon addon-sm">KDJK</span>
                                 <input type="text" class="form-input input-sm" v-model="interceptor.k">
                             </div>
                         </div>
-                        <div class="column col-3">
+                        <div class="column col-2 col-xs-4">
                             <div class="input-group">
                                 <span class="input-group-addon addon-sm">KDJ</span>
                                 <input type="text" class="form-input input-sm" v-model="interceptor.d">
                             </div>
                         </div>
-                        <div class="column col-3">
+                        <div class="column col-2 col-xs-4">
                             <div class="input-group">
                                 <span class="input-group-addon addon-sm">KDJJ</span>
                                 <input type="text" class="form-input input-sm" v-model="interceptor.j">
@@ -125,14 +140,13 @@ body {
                 </div>
                 <div v-show="interceptor.requirePrice">
                     <div class="columns">
-                        <div class="column col-4 col-mr-auto"></div>
-                        <div class="column col-4">
+                        <div class="column col-2 col-xs-6">
                             <div class="input-group">
                                 <span class="input-group-addon addon-sm">价格最低</span>
                                 <input v-model="interceptor.priceMin" type="text" class="form-input input-sm">
                             </div>
                         </div>
-                        <div class="column col-4">
+                        <div class="column col-2 col-xs-6">
                             <div class="input-group">
                                 <span class="input-group-addon addon-sm">价格最高</span>
                                 <input v-model="interceptor.priceMax" type="text" class="form-input input-sm">
@@ -142,14 +156,13 @@ body {
                 </div>
                 <div v-show="interceptor.requireMACD">
                     <div class="columns">
-                        <div class="column col-4 col-mr-auto"></div>
-                        <div class="column col-4">
+                        <div class="column col-2 col-xs-6">
                             <div class="input-group">
                                 <span class="input-group-addon addon-sm">MACD最低</span>
                                 <input type="text" class="form-input input-sm" v-model="interceptor.macdMin">
                             </div>
                         </div>
-                        <div class="column col-4">
+                        <div class="column col-2 col-xs-6">
                             <div class="input-group">
                                 <span class="input-group-addon addon-sm">MACD最高</span>
                                 <input type="text" class="form-input input-sm" v-model="interceptor.macdMax">
@@ -159,8 +172,7 @@ body {
                 </div>
                 <div v-show="interceptor.requireRSI">
                     <div class="columns">
-                        <div class="column col-4 col-mr-auto"></div>
-                        <div class="column col-4">
+                        <div class="column col-2 col-xs-6">
                             <div class="input-group">
                                 <span class="input-group-addon addon-sm">6日RSI最高</span>
                                 <input type="text" class="form-input input-sm" v-model="interceptor.rsi">
@@ -169,17 +181,34 @@ body {
                     </div>
                 </div>
             </div>
-            <table class="table table-hover">
-                <th v-for="k in target">
-                    <h4>{{k}}</h4>
-                </th>
-                <tr v-for="(stock,index) in stockData" v-show="stock.show">
-                    <transition name="custom-classes-transition" enter-active-class="animated tada" leave-active-class="animated bounceOutRight">
-                        <td v-for="(v,k) in stock.data">
-                            <span v-if="k!='url'">{{v}}</span>
-                            <span v-else><a v-bind:href="v" target="view_window">{{stock.data.name}}</a></span>
-                        </td>
-                    </transition>
+
+            <table class="table table-hover table-striped" v-for="(stock,index) in stockData" v-show="stock.show">
+                <tr>
+                    <td rowspan="2"><a v-bind:href=stock.data.url target="view_window">{{stock.data.name}}</a> </td>
+                    <td>换手率</td>
+                  <td>开盘价</td>
+                  <td>涨跌幅</td>
+                  <td>MACD</td>
+                </tr>
+                <tr>
+                    <td>{{stock.data.turnoverrate}}</td>
+                    <td>{{stock.data.open}}</td> 
+                    <td v-bind:class="stock.data.percent>0?up:down">{{stock.data.percent}}%</td>
+                    <td>{{stock.data.macd}}</td>
+                </tr>
+                <tr>
+                    <td rowspan="2"><a v-bind:href=stock.data.url target="view_window">{{stock.data.code}}</a></td>
+                    <td>KDJK</td>
+                    <td>KDJK</td>
+                    <td>KDJK</td>
+                    <td>RSI</td>
+                </tr>
+                <tr>
+                    
+                    <td>{{stock.data.kdjk}}</td>
+                    <td>{{stock.data.kdjd}}</td>
+                    <td>{{stock.data.kdjj}}</td>
+                    <td>{{stock.data.rsi1}}</td>
                 </tr>
             </table>
         </div>
@@ -190,6 +219,8 @@ body {
             data: {
                 origindata: `DATADATA`,
                 stockData: [],
+                up:'up',
+                down:'down',
                 target: ['code', 'name', 'open', 'percent', 'macd', 'kdjk', 'kdjd', 'kdjj', 'rsi1', 'url'],
                 interceptor: {
                     analysis: true,
@@ -231,6 +262,93 @@ body {
                             e.show = false
                         }
                     })
+                },
+                hide: function name() {
+                    this.show = !this.show
+                },
+                fetch: function () {
+                    let date = new Date()
+                    let fsName = `${date.getMonth()+1}-${date.getDate()}.json`
+                    axios.get(fsName).then((resp) => {
+                        var patten = /{"data.+":""}/g
+                        data = resp.data
+                        li = data.match(patten)
+                    }).then(() => {
+                        li.forEach(element => {
+                            data = JSON.parse(element).data
+                            if (data.item[0]) {
+                                let FSD = this.formatedStockData(data)
+                                Object.keys(FSD).forEach(e => {
+                                    if (this.target.indexOf(e) == -1) {
+                                        //delete FSD[e]
+                                    }
+                                });
+                                //FSD.show = true
+                                FSD.url = 'https://xueqiu.com/S/' + FSD.code
+                                this.stockData.push({
+                                    show: true,
+                                    data: FSD
+                                })
+                                //this.stockinfo.push(element)
+                            }
+                        });
+                    })
+                },
+                upload: function () {
+                    this.stockData = []
+                    var resultFile = document.getElementById("uploadedJson").files[0];
+                    var reader = new FileReader();
+                    reader.readAsText(resultFile, "UTF-8");
+                    pushData = this.pushData
+                    filter = this.filter
+                    reader.onload = function (evt) {
+                        let fileString = evt.target.result;
+                        let patten = /{"data.+":""}/g
+                        li = fileString.match(patten)
+                        pushData(li)
+                        filter()
+                    }
+                },
+                init: function () {
+                    this.stockData = []
+                    var resultFile = document.getElementById("uploadedJson").files[0];
+                    pushData = this.pushData
+                    filter = this.filter
+                    let fileString = this.origindata;
+                    let patten = /{"data.+":""}/g
+                    li = fileString.match(patten)
+                    pushData(li)
+                    filter()
+
+                },
+                pushData: function (li) {
+                    li.forEach(element => {
+                        data = JSON.parse(element).data
+                        if (data.item[0]) {
+                            let FSD = this.formatedStockData(data)
+                            Object.keys(FSD).forEach(e => {
+                                if (this.target.indexOf(e) == -1) {
+                                    //delete FSD[e]
+                                }
+                            });
+                            //FSD.show = true
+                            FSD.url = 'https://xueqiu.com/S/' + FSD.code
+                            this.stockData.push({
+                                show: true,
+                                data: FSD
+                            })
+                            //this.stockinfo.push(element)
+                        }
+                    });
+                },
+                formatedStockData: function (stockData) {
+                    var FSD = {}
+                    FSD.code = stockData.symbol
+                    FSD.name = stockData.sName
+                    stockData.column.forEach((e, i) => {
+                        FSD[e] = stockData.item[stockData.item.length - 1][i]
+                    })
+                    return FSD
                 },
                 MACDfilter: function () {
                     this.interceptor.requireMACD = !this.interceptor.requireMACD
@@ -303,99 +421,13 @@ body {
                     } else {
                         return true
                     }
-                },
-                hide: function name() {
-                    this.show = !this.show
-                },
-                fetch: function () {
-                    let date = new Date()
-                    let fsName = `${date.getMonth()+1}-${date.getDate()}.json`
-                    axios.get(fsName).then((resp) => {
-                        var patten = /{"data.+":""}/g
-                        data = resp.data
-                        li = data.match(patten)
-                    }).then(() => {
-                        li.forEach(element => {
-                            data = JSON.parse(element).data
-                            if (data.item[0]) {
-                                let FSD = this.formatedStockData(data)
-                                Object.keys(FSD).forEach(e => {
-                                    if (this.target.indexOf(e) == -1) {
-                                        delete FSD[e]
-                                    }
-                                });
-                                //FSD.show = true
-                                FSD.url = 'https://xueqiu.com/S/' + FSD.code
-                                this.stockData.push({
-                                    show: true,
-                                    data: FSD
-                                })
-                                //this.stockinfo.push(element)
-                            }
-                        });
-                    })
-                },
-                upload: function () {
-                    this.stockData = []
-                    var resultFile = document.getElementById("uploadedJson").files[0];
-                    var reader = new FileReader();
-                    reader.readAsText(resultFile, "UTF-8");
-                    pushData = this.pushData
-                    filter = this.filter
-                    reader.onload = function (evt) {
-                        let fileString = evt.target.result;
-                        let patten = /{"data.+":""}/g
-                        li = fileString.match(patten)
-                        pushData(li)
-                        filter()
-                    }
-                },
-                init: function () {
-                    this.stockData = []
-                    var resultFile = document.getElementById("uploadedJson").files[0];
-                    pushData = this.pushData
-                    filter = this.filter
-                    let fileString = this.origindata;
-                        let patten = /{"data.+":""}/g
-                        li = fileString.match(patten)
-                        pushData(li)
-                        filter()
-                },
-                pushData: function (li) {
-                    li.forEach(element => {
-                        data = JSON.parse(element).data
-                        if (data.item[0]) {
-                            let FSD = this.formatedStockData(data)
-                            Object.keys(FSD).forEach(e => {
-                                if (this.target.indexOf(e) == -1) {
-                                    delete FSD[e]
-                                }
-                            });
-                            //FSD.show = true
-                            FSD.url = 'https://xueqiu.com/S/' + FSD.code
-                            this.stockData.push({
-                                show: true,
-                                data: FSD
-                            })
-                            //this.stockinfo.push(element)
-                        }
-                    });
-                },
-                formatedStockData: function (stockData) {
-                    var FSD = {}
-                    FSD.code = stockData.symbol
-                    FSD.name = stockData.sName
-                    stockData.column.forEach((e, i) => {
-                        FSD[e] = stockData.item[0][i]
-                    })
-                    return FSD
                 }
             }
         })
-       window.onload=function () {
-           
-           vm.init()
-       }
+        window.onload = function () {
+            vm.init()
+        }
     </script>
 </body>
+
 </html>
