@@ -62,22 +62,24 @@ body {
 
 <body>
     <div class="container">
-        <h1>Stock Filter</h1>
         <div id="stockList">
             <div class="columns">
-                <div class="column col-1 col-xs-4">
+                <div class="cllumn col-4 col-xs-6">
+                    <h3>Stock Filter</h3>
+                </div>
+                <div class="column col-1 col-xs-3">
                     <label class="btn btn-primary">
                         <span>选择文件</span>
                         <input type="file" style="display: none" id="uploadedJson">
                     </label>
                 </div>
-                <div class="column col-1 col-xs-4">
+                <div class="column col-1 col-xs-3">
                     <!-- <button v-on:click="fetch()" class="btn btn-primary">获取数据</button> -->
                     <button v-on:click="upload()" class="btn btn-primary">解析文件</button>
                 </div>
-                <div class="column col-1 col-xs-4">
+                <!-- <div class="column col-1 col-xs-4">
                     <button v-on:click="filter()" class="btn btn-primary">过滤数据</button>
-                </div>
+                </div> -->
             </div>
             <br>
             <div>
@@ -116,7 +118,7 @@ body {
                         </div>
                     </div>
                 </div>
-                <div v-show="interceptor.requireKDJ">
+                <div v-show="interceptor.requireKDJ" @keyup="filter()">
                     <div class="columns">
                         <div class="column col-2 col-xs-4">
                             <div class="input-group">
@@ -138,7 +140,7 @@ body {
                         </div>
                     </div>
                 </div>
-                <div v-show="interceptor.requirePrice">
+                <div v-show="interceptor.requirePrice" @keyup="filter()">
                     <div class="columns">
                         <div class="column col-2 col-xs-6">
                             <div class="input-group">
@@ -154,7 +156,7 @@ body {
                         </div>
                     </div>
                 </div>
-                <div v-show="interceptor.requireMACD">
+                <div v-show="interceptor.requireMACD" @keyup="filter()">
                     <div class="columns">
                         <div class="column col-2 col-xs-6">
                             <div class="input-group">
@@ -170,7 +172,7 @@ body {
                         </div>
                     </div>
                 </div>
-                <div v-show="interceptor.requireRSI">
+                <div v-show="interceptor.requireRSI" @keyup="filter()">
                     <div class="columns">
                         <div class="column col-2 col-xs-6">
                             <div class="input-group">
@@ -181,18 +183,17 @@ body {
                     </div>
                 </div>
             </div>
-
             <table class="table table-hover table-striped" v-for="(stock,index) in stockData" v-show="stock.show">
                 <tr>
                     <td rowspan="2"><a v-bind:href=stock.data.url target="view_window">{{stock.data.name}}</a> </td>
                     <td>换手率</td>
-                  <td>开盘价</td>
-                  <td>涨跌幅</td>
-                  <td>MACD</td>
+                    <td>开盘价</td>
+                    <td>涨跌幅</td>
+                    <td>MACD</td>
                 </tr>
                 <tr>
                     <td>{{stock.data.turnoverrate}}</td>
-                    <td>{{stock.data.open}}</td> 
+                    <td>{{stock.data.open}}</td>
                     <td v-bind:class="stock.data.percent>0?up:down">{{stock.data.percent}}%</td>
                     <td>{{stock.data.macd}}</td>
                 </tr>
@@ -204,7 +205,6 @@ body {
                     <td>RSI</td>
                 </tr>
                 <tr>
-                    
                     <td>{{stock.data.kdjk}}</td>
                     <td>{{stock.data.kdjd}}</td>
                     <td>{{stock.data.kdjj}}</td>
@@ -219,8 +219,8 @@ body {
             data: {
                 origindata: `DATADATA`,
                 stockData: [],
-                up:'up',
-                down:'down',
+                up: 'up',
+                down: 'down',
                 target: ['code', 'name', 'open', 'percent', 'macd', 'kdjk', 'kdjd', 'kdjj', 'rsi1', 'url'],
                 interceptor: {
                     analysis: true,
@@ -319,7 +319,6 @@ body {
                     li = fileString.match(patten)
                     pushData(li)
                     filter()
-
                 },
                 pushData: function (li) {
                     li.forEach(element => {
