@@ -6,14 +6,14 @@ var fileDir = path.format({
 })
 
 module.exports = {
-    stockCount: 10, //'ALL', //'ALL' //接受number 或者 字符串 ALL
+    stockCount: 'ALL', //'ALL' //接受number 或者 字符串 ALL
     interval: 1000,
     analysis: true,
     fetchTodayData: true,
-    onlyTodayData: false,
+    onlyTodayData: true,
     mailNotify: true,
     days: -1,
-    mongoURI: 'mongodb://stock:stock@locahost:27017/stockData',
+    mongoURI: 'mongodb://stock:stock@localhost:27017/stockData',
     fileDir: fileDir, // __dirname,
     fsName: {
         dateJSON: path.format({

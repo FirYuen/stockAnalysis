@@ -6,7 +6,7 @@ module.exports = {
         secure: true,
         auth: {
             user: "yuenwork@163.com",
-            pass: "*"
+            pass: "USE YOUR OWN INFO"
         }
     },
     mail: {
