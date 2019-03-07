@@ -30,12 +30,18 @@ async function getDataAndsaveToDataBase(stock, cookie) {
         let filed = utils.formatedStockData(await getStockData(stock, cookie))
         //判断是不是当天的数据
         let todayTimestamp = new Date(new Date().toLocaleDateString()).getTime()
-        if (filed.data.timestamp === todayTimestamp) {
+        console.log(filed.data.timestamp, todayTimestamp)
+        if (config.onlyTodayData) {
+            if (filed.data.timestamp === todayTimestamp) {
+                await dateData(filed).save()
+                await utils.appendfs(fsName.dateJSON, JSON.stringify(filed) + '\n')
+            }
+        } else {
             await dateData(filed).save()
             await utils.appendfs(fsName.dateJSON, JSON.stringify(filed) + '\n')
         }
     } catch (err) {
-        //console.log(err)
+        console.log(err)
     }
 }
 
@@ -59,7 +65,6 @@ async function fetchDataAndStorage() {
             await getDataAndsaveToDataBase(ele, cookie)
         })
     }
-    mongoose.disconnect()
 }
 
 
@@ -89,7 +94,10 @@ function createHtmlFile() {
     } else {
         await fs.mkdir(config.fileDir, () => {})
     }
+
     await fetchDataAndStorage();
+
+
     await createHtmlFile();
 
     await utils.sleep(Math.random() * 1000)
@@ -103,6 +111,8 @@ function createHtmlFile() {
             filename: fsName.dateAnalysisJSON,
             path: fsName.dateAnalysisJSON
         })
+        console.log(fsName.dateJSON)
+        console.log(path.basename(fsName.dateJSON))
         await analysis(fsName.dateJSON) //return str 为邮件正文
 
     } else {
@@ -114,10 +124,10 @@ function createHtmlFile() {
             mailconfig.text = data
             sendmail(mailconfig)
         })
-        
+
         console.log(`    Sending Mail`);
     } else {
         console.log(`    Don't need to send mail`);
     }
-
+    await mongoose.disconnect()
 })()

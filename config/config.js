@@ -10,35 +10,36 @@ module.exports = {
     interval: 1000,
     analysis: true,
     fetchTodayData: true,
+    onlyTodayData: false,
     mailNotify: true,
     days: -1,
-    mongoURI: 'mongodb://stock:stock@47.101.153.129:27017/stockData',
+    mongoURI: 'mongodb://stock:stock@locahost:27017/stockData',
     fileDir: fileDir, // __dirname,
     fsName: {
         dateJSON: path.format({
             dir: fileDir,
-            name: `${dateStr}`,
-            ext: '.json'
+            base: `${dateStr}.json`,
+
         }),
         dataHtml: path.format({
             dir: fileDir,
-            name: `${dateStr}`,
-            ext: '.html'
+            base: `${dateStr}.html`,
+
         }),
         dateAnalysisMD: path.format({
             dir: fileDir,
-            name: `${dateStr}`,
-            ext: '.md'
+            base: `${dateStr}.md`,
+
         }),
         dateAnalysisJSON: path.format({
             dir: fileDir,
-            name: `${dateStr}-analysis`,
-            ext: '.json'
+            base: `${dateStr}-analysis.json`,
+
         }),
         mailText: path.format({
             dir: fileDir,
-            name: `${dateStr}`,
-            ext: '.txt'
+            base: `${dateStr}.txt`,
+
         })
     }
 }
