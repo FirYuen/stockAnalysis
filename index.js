@@ -27,7 +27,7 @@ var analysis = require("./utils/analysis").analysis
 
 async function getDataAndsaveToDataBase(stock, cookie) {
     try {
-        await utils.writefs(fsName.dateJSON, '')
+
         let filed = utils.formatedStockData(await getStockData(stock, cookie))
         //判断是不是当天的数据
         let todayTimestamp = new Date(new Date().toLocaleDateString()).getTime()
@@ -95,7 +95,7 @@ function createHtmlFile() {
     } else {
         await fs.mkdir(config.fileDir, () => {})
     }
-
+    await utils.writefs(fsName.dateJSON, '')
     await fetchDataAndStorage();
 
 
